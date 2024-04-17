@@ -15,7 +15,11 @@ const test = require("../src/test.js")({
   APPOINTMENT_LATEST_DATE: "2069-12-31 GMT",
   APPOINTMENT_EARLIEST_TIME: "00:00 GMT",
   APPOINTMENT_LATEST_TIME: "23:59 GMT",
+  YOUR_TELEGRAM_BOT_TOKEN: null,
+  YOUR_CHAT_ID : null,
 });
+const TelegramBot = require('node-telegram-bot-api');
+
 
 test("appointment", async ({ context, params }, testInfo) => {
   logger.debug(JSON.stringify(params, null, 2));
@@ -28,9 +32,11 @@ test("appointment", async ({ context, params }, testInfo) => {
     latestDate: params.APPOINTMENT_LATEST_DATE,
   });
   expect(dateURLs.length, "No available appointment dates").toBeGreaterThan(0);
-
+  const token = params.YOUR_TELEGRAM_BOT_TOKEN;
+  const chatId = params.YOUR_CHAT_ID;
+  const bot = new TelegramBot(token, { polling: false });
   const appointmentURLs = await getAppointmentURLs(context, dateURLs, {
-    earliestTime: params.APPOINTMENT_EARLIEST_TIME,
+    earliestTime: APPOINTMENT_EARLIEST_TIME,
     latestTime: params.APPOINTMENT_LATEST_TIME,
   });
   expect(
@@ -63,6 +69,13 @@ test("appointment", async ({ context, params }, testInfo) => {
   throw new Error("Booking failed for all appointments.");
 });
 
+
+
+// Function to send Telegram messages
+function notifyViaTelegram(message) {
+  bot.sendMessage(chatId, message).catch(console.error);
+}
+
 function timestamp() {
   return new Date(Date.now()).toUTCString();
 }
@@ -91,74 +104,60 @@ async function getServiceURL(page, { serviceName }) {
     });
 }
 
-async function getDateURLs(
-  page,
-  serviceURL,
-  { locations, earliestDate, latestDate }
-) {
-  return await test
-    .step("get date urls", async () => {
-      page.on("load", async () => {
-        await Promise.all([checkRateLimitExceeded(page), checkCaptcha(page)]);
-      });
-      await page.goto(serviceURL, { waitUntil: "domcontentloaded" });
-      await selectLocations(page, {
-        locations: locations ? locations.split(",") : [],
-      });
+async function getDateURLs(page, serviceURL, { locations, earliestDate, latestDate }) {
+  return await test.step("get date urls", async () => {
+    page.on("load", async () => {
+      await Promise.all([checkRateLimitExceeded(page), checkCaptcha(page)]);
+    });
+    await page.goto(serviceURL, { waitUntil: "domcontentloaded" });
+    await selectLocations(page, {
+      locations: locations ? locations.split(",") : [],
+    });
+    await Promise.all([
+      page.waitForNavigation(),
+      page.getByRole("button", {
+        name: "An diesem Standort einen Termin buchen",
+      }).click(),
+    ]);
+
+    // Check if the URL indicates no appointments available and notify if so
+    if (await page.url().includes("/service.berlin.de/terminvereinbarung/termin/taken")) {
+      notifyViaTelegram("No appointments available for the selected locations.");
+      throw new Error("No appointments available for the selected locations.");
+    }
+
+    // Check if the website is down for maintenance and notify if so
+    const maintenanceElement = page.getByRole("heading", { name: "Wartung" });
+    if (await maintenanceElement.isVisible({ timeout: 1000 })) {
+      notifyViaTelegram("Website is down for maintenance.");
+      throw new Error("Website is down for maintenance.");
+    }
+
+    // Proceed to scrape date URLs if available
+    logger.debug(`Calendar url: ${page.url()}`);
+    const dateURLsPage1 = await scrapeDateURLs(page);
+    // Handle pagination if necessary
+    let dateURLsPage2 = [];
+    const nextButtonLocator = page.locator("th.next");
+    if (await nextButtonLocator.isVisible()) {
       await Promise.all([
         page.waitForNavigation(),
-        page
-          .getByRole("button", {
-            name: "An diesem Standort einen Termin buchen",
-          })
-          .click(),
+        nextButtonLocator.click(),
       ]);
-      await expect(
-        page,
-        "No appointments available for the selected locations"
-      ).not.toHaveURL(
-        /service\.berlin\.de\/terminvereinbarung\/termin\/taken/,
-        {
-          timeout: 1,
-        }
-      );
-      await expect(
-        page.getByRole("heading", { name: "Wartung" }),
-        "Website is down for maintenance"
-      ).not.toBeVisible({ timeout: 1 });
-      await expect(
-        page.getByRole("heading", {
-          name: "Die Terminvereinbarung ist zur Zeit nicht",
-        }),
-        "Appointment booking not possible at this time"
-      ).not.toBeVisible({ timeout: 1 });
-
-      logger.debug(`Calendar url: ${page.url()}`);
-      const dateURLsPage1 = await scrapeDateURLs(page);
-      // TODO: use page.getByRole for pagination button
-      let dateURLsPage2 = [];
-      const nextButtonLocator = page.locator("th.next");
-      if (await nextButtonLocator.isVisible()) {
-        await Promise.all([
-          page.waitForNavigation(),
-          page.locator("th.next").click(),
-        ]);
-        dateURLsPage2 = await scrapeDateURLs(page);
-      }
-      const dateURLs = [...new Set(dateURLsPage1.concat(dateURLsPage2))];
-      logger.debug(`Found ${dateURLs.length} appointment dates.`);
-      const filteredDateURLs = filterURLsBetweenDates(dateURLs, {
-        earliestDate,
-        latestDate,
-      });
-      logger.debug(
-        `Found ${filteredDateURLs.length} appointment dates within the configured date range.`
-      );
-      return filteredDateURLs;
-    })
-    .finally(async () => {
-      await page.close();
+      dateURLsPage2 = await scrapeDateURLs(page);
+    }
+    const dateURLs = [...new Set(dateURLsPage1.concat(dateURLsPage2))];
+    logger.debug(`Found ${dateURLs.length} appointment dates.`);
+    const filteredDateURLs = filterURLsBetweenDates(dateURLs, {
+      earliestDate,
+      latestDate,
     });
+    logger.debug(`Found ${filteredDateURLs.length} appointment dates within the configured date range.`);
+    return filteredDateURLs;
+  })
+  .finally(async () => {
+    await page.close();
+  });
 }
 
 async function selectLocations(page, { locations }) {
