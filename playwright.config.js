@@ -7,7 +7,6 @@ module.exports = defineConfig({
   reporter: [["html", { open: "never" }]],
   use: {
     ...devices["Desktop Chrome"],
-    channel: "chrome",
     ignoreHTTPSErrors: true,
     bypassCSP: true,
     launchOptions: {
