@@ -390,7 +390,7 @@ async function bookAppointment(
       await expect(async () => {
         await Promise.all([
           page.waitForNavigation(),
-          page.getByRole("button", { name: "Termin verifzieren" }).click(),
+          page.getByRole("button", { name: "Termin verifizieren" }).click(),
         ]);
         await expect(
           page.getByRole("heading", { name: "Terminbestätigung" })
@@ -497,7 +497,7 @@ function filterURLsBetweenTimes(urls, { earliestTime, latestTime }) {
 function checkRateLimitExceeded(page) {
   return expect(
     page.getByRole("heading", { name: "Zu viele Zugriffe" }),
-    "Rate limit exceeded"
+    "You got blocked by berlin.de"
   ).not.toBeVisible({ timeout: 1 });
 }
 
