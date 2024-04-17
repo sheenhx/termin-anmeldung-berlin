@@ -15,6 +15,11 @@ Build & run Docker container.
 ```bash
 # Update stealth evasions
 npx extract-stealth-evasions
+
+#install all dependencies
+sudo apt-get update
+sudo apt-get install ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils
+
 # Build
 docker build -t anmeldung-berlin .
 # Book an "Anmeldung einer Wohnung" appointment
@@ -22,7 +27,7 @@ docker run \
     -v $(pwd)/playwright-report:/home/pwuser/playwright-report \
     -v $(pwd)/test-results:/home/pwuser/test-results \
     -e MAILSLURP_API_KEY=*your-api-key* \
-    -e FORM_NAME=*your-name* \
+    -e FORM_NAME=*your-first-name* \
     -e FORM_PHONE=*your-phone-number* \
     anmeldung-berlin
 # Book an "Blaue Karte EU auf einen neuen Pass übertragen" appointment on/after 01 Feb 2024 & before/on 28 Feb 2024 at any time.
@@ -38,31 +43,10 @@ docker run \
     anmeldung-berlin
 ```
 
-### 2b. Run Locally on Mac OS
-
-Run the program from the command line.
-
-```bash
-# Update stealth evasions
-npx extract-stealth-evasions
-# Install dependencies
-npm i
-# Install Chrome browser
-npx playwright install chrome
-# Book an "Anmeldung einer Wohnung" appointment
-MAILSLURP_API_KEY=*your-api-key* FORM_NAME=*your-name* FORM_PHONE=*your-phone-number* \
-    npm start
-# Book an "Abmeldung einer Wohnung" appointment starting on/after 10:00 AM and before/at 1:00 PM on any date.
-MAILSLURP_API_KEY=*your-api-key* FORM_NAME=*your-name* FORM_PHONE=*your-phone-number* \
-    APPOINTMENT_SERVICE="Abmeldung einer Wohnung" \
-    APPOINTMENT_EARLIEST_TIME="10:00 GMT" \
-    APPOINTMENT_LATEST_TIME="13:00 GMT" \
-    npm run debug
-```
 
 ## Deployment
 
-Set [playwright.config.js](/playwright.config.js) `retries` to a high number, if you want to run the app locally until a successful booking is made. You may very well be blocked for exceeding a rate limit. In this case, try setting `PROXY_URL` to a back-connect proxy URL.
+Set [playwright.config.js](/playwright.config.js) `retries` to a high number, if you want to run the app locally until a successful booking is made. You will definitely be blocked for exceeding a rate limit. In this case, try setting `PROXY_URL` to a back-connect proxy URL. try my [referal code](https://www.webshare.io/?referral_code=5ejqko5w971n)
 
 ## Parameters
 
@@ -91,7 +75,7 @@ Variable | Default | Description
 ---------|----------|---------
 `LOGLEVEL` | "info" | Set to "debug" to get stdout.
 `CONCURRENCY` | "16" | Max number of concurrent Pages.
-`PROXY_URL` | `undefined` | Hide your IP with a back-connect proxy.
+`PROXY_URL` | `http://p.webshare.io:9999` | You will be surely blocked, so need to [use a proxy](https://www.webshare.io/?referral_code=5ejqko5w971n).
 
 ## Debugging
 
