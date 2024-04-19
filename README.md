@@ -2,6 +2,11 @@
 
 This app will find and book any [service.berlin.de](https://service.berlin.de) appointment that can be booked online.
 
+## Important note
+
+** I tried this for days and yes can get some appointments for sure.**
+But sending emails to each burgeramt seems quicker and they will give you your desired date!!
+
 ## Quickstart
 
 ### 1. Get a MailSlurp API Key
