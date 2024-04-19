@@ -4,8 +4,9 @@ This app will find and book any [service.berlin.de](https://service.berlin.de) a
 
 ## Important note
 
-** I tried this for days and yes can get some appointments for sure.**
-But sending emails to each burgeramt seems quicker and they will give you your desired date!!
+- I tried this for days and yes can get some appointments for sure. 
+
+- But sending emails to each burgeramt seems quicker and they will give you your desired date!!
 
 ## Quickstart
 
